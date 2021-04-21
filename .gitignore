@@ -1,5 +1,6 @@
 # Prerequisites
-/bin
-/obj
-
+*/bin
+*/obj
+/packages
 *.sln
+*.csproj.user
