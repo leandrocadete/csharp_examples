@@ -11,7 +11,8 @@ using DocumentFormat.OpenXml.Packaging;
 namespace Excel {
     class Program {
         static void Main(string[] args) {
-            ReadExcel(args[0]);
+
+            ReadExcel(args[0]); // Get path from the first argument
         }
         public static SharedStringItem GetSharedStringItemById(WorkbookPart workbookPart, int id) {
             return workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(id);
@@ -28,45 +29,60 @@ namespace Excel {
                 Worksheet workSheet = ((WorksheetPart)wPart.GetPartById(sheet1.Id)).Worksheet;
                 List<SheetData> rows = workSheet.ChildElements.OfType<SheetData>().ToList();
 
-                string currentcellvalue = string.Empty;
+                string currCellValue = string.Empty;
+
+                List<List<string>> lstSheet = new List<List<string>>(rows[0].ChildElements.Count);
 
                 for (int i = 0; i < rows[0].ChildElements.Count; i++) {
+                    lstSheet.Add(new List<string>(4));
+
+
                     Row currentrow = (Row)rows[0].ChildElements.GetItem(i);
 
                     Cell[] cells = new Cell[] {
                         (Cell)currentrow.ChildElements.GetItem(0),
                         (Cell)currentrow.ChildElements.GetItem(1),
-                        (Cell)currentrow.ChildElements.GetItem(2)
+                        (Cell)currentrow.ChildElements.GetItem(2),
+                        (Cell)currentrow.ChildElements.GetItem(3)
                     };
 
                     foreach (Cell c in cells) {
                         if(c.DataType != null) {
+                            Console.WriteLine("DataType: {0}", c.DataType.InnerText);
                             if(c.DataType == CellValues.SharedString) {
                                 int id = -1;
                                 if(int.TryParse(c.InnerText, out id)) {
                                     SharedStringItem item = GetSharedStringItemById(wPart, id);
                                     if(item.Text != null) {
-                                        currentcellvalue = item.Text.Text;
+                                        currCellValue = item.Text.Text;
                                     } else if (item.InnerText != null) {
-                                        currentcellvalue = item.InnerText;
+                                        currCellValue = item.InnerText;
                                     } else if (item.InnerXml != null) {
-                                        currentcellvalue = item.InnerXml;
+                                        currCellValue = item.InnerXml;
                                     }
                                 }
                             }
+                        } else {
+                            Console.WriteLine("DataType: {0}", c.DataType?.InnerText);
+                            currCellValue = c.InnerText;
                         }
-                        Console.Write("{0}; ", currentcellvalue);
+                        lstSheet.Last().Add(currCellValue);
+
+                        //Console.Write("{0}; ", currCellValue);
                     }
-                        Console.WriteLine();
-                    
-
-
+                    //Console.WriteLine();
                 }
-
-
-
-
-
+                System.IO.StreamWriter strW = new System.IO.StreamWriter("test_output.csv");
+                foreach (var rs in lstSheet) {
+                    foreach (var c in rs) {
+                        Console.Write("{0}; ", c);
+                        strW.Write("{0};", c);
+                    }
+                    strW.WriteLine();
+                    Console.WriteLine();
+                }
+                strW.Dispose();
+                strW.Close();
             }
         }
     }
