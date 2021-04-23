@@ -14,9 +14,7 @@ namespace Excel {
 
             ReadExcel(args[0]); // Get path from the first argument
         }
-        public static SharedStringItem GetSharedStringItemById(WorkbookPart workbookPart, int id) {
-            return workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(id);
-        }
+        
         public static void ReadExcel(string path) {
 
             using (SpreadsheetDocument doc = SpreadsheetDocument.Open(path, true)) {
@@ -47,30 +45,9 @@ namespace Excel {
                     };
 
                     foreach (Cell c in cells) {
-                        if(c.DataType != null) {
-                            Console.WriteLine("DataType: {0}", c.DataType.InnerText);
-                            if(c.DataType == CellValues.SharedString) {
-                                int id = -1;
-                                if(int.TryParse(c.InnerText, out id)) {
-                                    SharedStringItem item = GetSharedStringItemById(wPart, id);
-                                    if(item.Text != null) {
-                                        currCellValue = item.Text.Text;
-                                    } else if (item.InnerText != null) {
-                                        currCellValue = item.InnerText;
-                                    } else if (item.InnerXml != null) {
-                                        currCellValue = item.InnerXml;
-                                    }
-                                }
-                            }
-                        } else {
-                            Console.WriteLine("DataType: {0}", c.DataType?.InnerText);
-                            currCellValue = c.InnerText;
-                        }
+                        currCellValue = getStringFromCellValue(wPart, currCellValue, c);
                         lstSheet.Last().Add(currCellValue);
-
-                        //Console.Write("{0}; ", currCellValue);
                     }
-                    //Console.WriteLine();
                 }
                 System.IO.StreamWriter strW = new System.IO.StreamWriter("test_output.csv");
                 foreach (var rs in lstSheet) {
@@ -84,6 +61,37 @@ namespace Excel {
                 strW.Dispose();
                 strW.Close();
             }
+            
+            
+            // ------------------ Inner functions ------------------
+
+            string getStringFromCellValue(WorkbookPart wPart, string currCellValue, Cell c) {
+                if (c.DataType != null) {
+                    Console.WriteLine("DataType: {0}", c.DataType.InnerText);
+                    if (c.DataType == CellValues.SharedString) {
+                        int id = -1;
+                        if (int.TryParse(c.InnerText, out id)) {
+                            SharedStringItem item = GetSharedStringItemById(wPart, id);
+                            if (item.Text != null) {
+                                currCellValue = item.Text.Text;
+                            } else if (item.InnerText != null) {
+                                currCellValue = item.InnerText;
+                            } else if (item.InnerXml != null) {
+                                currCellValue = item.InnerXml;
+                            }
+                        }
+                    }
+                } else {
+                    Console.WriteLine("DataType: {0}", c.DataType?.InnerText);
+                    currCellValue = c.InnerText;
+                }
+
+                return currCellValue;
+            }
+            SharedStringItem GetSharedStringItemById(WorkbookPart workbookPart, int id) {
+                return workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(id);
+            }
+
         }
     }
 }
